@@ -63,6 +63,11 @@
 
 				const { schema_version, meshes, elements, info } = dotbim;
 
+				bim_meshes.userData[ 'schema_version' ] = schema_version || {};
+				bim_meshes.userData[ 'info' ] = info || {};
+
+				if ( info.Name && info.Name !== '' ) bim_meshes.name = info.Name;
+
 				if ( ! meshes || ! elements ) {
 
 					throw new Error( 'THREE.BIMLoader: No meshes or elements found!' );
@@ -110,7 +115,6 @@
 
 				dotbim_Elemments2Meshes( elements, geometries ).forEach( bim_mesh => {
 
-					bim_mesh[ 'name' ] = 'mesh_' + bim_mesh.id;
 					bim_meshes.add( bim_mesh );
 
 				});
@@ -132,16 +136,18 @@
 				let { mesh_id, vector, rotation, guid, type, color, face_colors, info } = element;
 
 				let geometry = geometries[ mesh_id ];
+				let name = info.Name || '';
 
 				geometry.computeVertexNormals();
 
 				let material = new THREE.MeshStandardMaterial( {
 
+					name: info[ 'Material' ] || 'Default Material',
 					side: THREE.DoubleSide,
 					flatShading: false,
 					transparent: true,
-					metalness: 0.8,
-					roughness: 0.3,
+					metalness: 0.1,
+					roughness: 0.6,
 					color: 0xFFFFFF
 
 				} );
@@ -212,6 +218,10 @@
 					mesh.setMatrixAt( mesh_id_key.current_instance, matrix );
 					mesh.instanceMatrix.needsUpdate = true;
 
+					if (name === '') name = 'mesh_' + mesh_id + '_' + mesh.id + '_' + mesh_id_key.current_instance;
+
+					mesh.userData[ mesh_id_key.current_instance ] = { name: name, guid: guid || {}, type: type || {}, info: info || {} };
+	
 					mesh_id_key.current_instance++;
 
 				} else { // expected existing 'color'
@@ -238,8 +248,14 @@
 					mesh.setColorAt( mesh_id_key.current_instance, material.color );
 					mesh.instanceColor.needsUpdate = true;
 
+					if (name === '') name = 'mesh_' + mesh_id + '_' + mesh.id + '_' + mesh_id_key.current_instance;
+
+					mesh.userData[ mesh_id_key.current_instance ] = { name: name, guid: guid || {}, type: type || {}, info: info || {} };
+
 					mesh_id_key.current_instance++;
 				}
+
+				if ( info.Name && info.Name !== '' ) mesh.name = info.Name;
 
 				return mesh;
 
